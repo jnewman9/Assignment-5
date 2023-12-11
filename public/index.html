@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <style type="text/css">
+      #thismap {
+        height: 600px;
+        width: 1200px;
+      }
+    </style>
+    <title>Air Quality Map</title>
+  </head>
+
+  <body>
+    <h1>Air Quality Map</h1>
+    <h3>click on a marker to see information</h3>
+    <div style="clear: both" id="thismap"></div>
+
+    <script type="text/javascript">
+      // open street map stuff
+      let firstTime = true;
+      const myMap = L.map('thismap').setView([0, 0], 1);
+      const attribution =
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+      const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const tiles = L.tileLayer(tileUrl, { attribution });
+      tiles.addTo(myMap);
+      // const marker = L.marker([0, 0]).addTo(myMap);
+      const zoomLevel = 2;
+      async function loadAir() {
+        let aqData;
+        try {
+          const api_url = '/air';
+          const response = await fetch(api_url);
+          const json = await response.json();
+          aqData = json.results;
+          // console.log(aqData);
+          for (let loc of aqData) {
+            let name = loc.location;
+            let lat = loc.coordinates.latitude;
+            let long = loc.coordinates.longitude;
+            // console.log(name, lat, long + "\n");
+            let measurementString = name + '<br>';
+            for (let m of loc.measurements) {
+              let val = m.value;
+              let unit = m.unit;
+              let param = m.parameter;
+              if (param == 'pm25' || param == 'pm10') {
+                measurementString += val + ' ' + unit + ' of ' + param;
+                measurementString += '<br>';
+              }
+            }
+            let marker = L.marker([lat, long]) //, icon)
+              .bindPopup(measurementString)
+              .addTo(myMap);
+            console.log(measurementString);
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      loadAir()
+        .then((response) => {
+          console.log('loaded');
+        })
+        .catch((error) => {
+          console.log('error');
+          console.error(error);
+        });
+
+      if (firstTime) {
+        myMap.setView([0, 0], zoomLevel);
+        firstTime = false;
+      }
+    </script>
+  </body>
+</html>
